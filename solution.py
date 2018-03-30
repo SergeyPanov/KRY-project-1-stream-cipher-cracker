@@ -1,8 +1,29 @@
-from itertools import cycle
-
 SUB = [0, 1, 1, 0, 1, 0, 1, 0]
+
 N_B = 32
 N = 8 * N_B
+max_256_bit_val = 0
+for i in range(N):
+  max_256_bit_val |= 1 << i
+
+def calculateX(y, x):
+  x = x << N
+  for i in range(N-1, -1, -1):
+    sub_value = (y & 1 << i) >> i
+    if sub_value == SUB[(7 << i & x) >> i]:
+      x |= x
+    else:
+      x |= 1 << i
+  x = (x & 1) << N - 1 | (x & max_256_bit_val) >> 1
+  return x
+
+
+# Return previous keystream for next_stream based on guess
+def getPrevStream(guess, next_stream):
+  for prev_step in guess:
+    next_step = step(prev_step)
+    if next_step == next_stream:
+      return prev_step
 
 # Next keystream
 def step(x):
@@ -40,25 +61,26 @@ def decodeFile(input, output, partialKeystream):
 
 
 
-def getPartialKeystream(plaintext1, ciphertext1, ciphertext2):
-
+def getPartialKeystream(plaintext1, ciphertext1):
     firstXor = []
     for plainLine, cipherLine in zip(plaintext1, ciphertext1):
         firstXor = [plainChar ^ cipherChar for (plainChar, cipherChar) in zip(plainLine, cipherLine)]
-
     return  firstXor
-    # secondXor = []
-    # for cipherLine in ciphertext2:
-    #     secondXor = [cipherChar1 ^ cipherChar2 for (cipherChar1, cipherChar2) in zip(firstXor, cipherLine)]
-    #
-    # return secondXor
+
+def decode(keystream):
+    guess = []
+    prev_stream = keystream
+
+    for i in range(N//2):
+        for j in range(4):
+            guess.append(calculateX(prev_stream, j))
+        prev_stream = getPrevStream(guess, prev_stream)
+        guess = []
+    return prev_stream.to_bytes(N, "little")[:29].decode()
+
 
 if __name__ == '__main__':
     bis = readFileByBytes("./xpanov00/bis.txt")
     cipherBis = readFileByBytes("./xpanov00/bis.txt.enc")
-    # decrypt(bis, cipherBis, cipherBis)
-    superCipher = readFileByBytes("./xpanov00/super_cipher.py.enc")
-    hintGif = readFileByBytes("./xpanov00/hint.gif.enc")
-    partialKeystream = getPartialKeystream(bis, cipherBis, superCipher)
-    decodeFile(hintGif[0], "./hint.gif", partialKeystream)
-    decodeFile(superCipher[0], "./super_cipher2.py", partialKeystream)
+    partialKeystream = getPartialKeystream(bis, cipherBis)
+    print(decode(int.from_bytes(bytes(partialKeystream[0:32]), 'little')))

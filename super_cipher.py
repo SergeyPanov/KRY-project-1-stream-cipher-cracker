@@ -105,7 +105,7 @@ for i in range(N//2):
   guess = []
 
 print("Decipher initial: {}".format(prev_stream))
-print(prev_stream.to_bytes(N, "little")[:29])
+print(prev_stream.to_bytes(N, "little")[:29].decode())
 
 
 # guessedX = guessX()
