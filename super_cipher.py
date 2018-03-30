@@ -77,26 +77,35 @@ def deStupid(y, x):
 
 # print(deStupid(stupidY) == x)
 
+# Return previous keystream for next_stream based on guess
+def getPrevStream(guess, next_stream):
+  for prev_step in guess:
+    next_step = step(prev_step)
+    if next_step == next_stream:
+      return prev_step
+
 # Keystream init
 keystr = int.from_bytes(args.key.encode(),'little')
-# for i in range(N//2):
-#   keystr = step(keystr)
+print("Initial keystream: {}".format(keystr))
+for i in range(N//2):
+  keystr = step(keystr)
+  print("After step: {}".format(keystr))
 
 guess = []
-print("Unknown keystream: {}".format(keystr))
-next_stream = step(keystr)
-print("Unknown next: {}".format(next_stream))
-for i in range(4):
-  guess.append(calculateX(next_stream, i))
+# print("Unknown keystream: {}".format(keystr))
+# next_stream = step(keystr)
+# print("Unknown next: {}".format(next_stream))
+prev_stream = keystr
 
-print(guess)
+for i in range(N//2):
+  for i in range(4):
+    guess.append(calculateX(prev_stream, i))
 
-for prev_step in guess:
-  next_step = step(prev_step)
-  if next_step == next_stream:
-    print(prev_step)
+  prev_stream = getPrevStream(guess, prev_stream)
+  guess = []
 
-
+print("Decipher initial: {}".format(prev_stream))
+print(prev_stream.to_bytes(N, "little")[:29])
 
 
 # guessedX = guessX()
