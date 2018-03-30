@@ -61,4 +61,4 @@ if __name__ == '__main__':
     hintGif = readFileByBytes("./xpanov00/hint.gif.enc")
     partialKeystream = getPartialKeystream(bis, cipherBis, superCipher)
     decodeFile(hintGif[0], "./hint.gif", partialKeystream)
-    decodeFile(superCipher[0], "./super_cipher.py", partialKeystream)
+    decodeFile(superCipher[0], "./super_cipher2.py", partialKeystream)
