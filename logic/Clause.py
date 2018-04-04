@@ -14,7 +14,7 @@ class Clause:
         self.terms.append(Term("x"+str(least), (1 & number) == 0))
 
     def negate(self):
-        self.terms = [term.negate() for term in self.terms]
+        [term.negate() for term in self.terms]
         if self.operator == 'and':
             self.operator = 'or'
         else:
@@ -22,4 +22,16 @@ class Clause:
 
     def deMorgan(self):
         self.negate()
-        self.is_negated = not self.is_negated
+
+    def apply(self, left, mid):
+        self.terms[0].assignValue(left)
+        self.terms[1].assignValue(mid)
+
+    def simplify(self):
+        self.simplifyed_value = self.terms[2]
+        for term in self.terms:
+            if term.getValue() == True:
+                self.simplifyed_value = Term("value", value=True)
+
+    def getSimplifyed(self):
+        return self.simplifyed_value

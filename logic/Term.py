@@ -8,7 +8,10 @@ class Term:
         self.is_negated = not self.is_negated
 
     def getValue(self):
-        if self.is_negated:
-            return not self.value
-        else:
-            return self.value
+        if self.value != None:
+            if self.is_negated:
+                return not self.value
+        return self.value
+
+    def assignValue(self, value):
+        self.value = value

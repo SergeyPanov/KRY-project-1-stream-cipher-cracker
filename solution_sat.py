@@ -1,120 +1,81 @@
-#!/usr/bin/env python
+from commons import *
+from logic.Clause import Clause
+from logic.Function import Function
 
-count_solutions=True
-#count_solutions=False
+def constructVector(and_functions):
+  x = 0
+  nn = N - 1
+  for function in and_functions:
+    val = 1 if function.simplifyed_value.value == True else 0
+    x |= (val << nn)
+    nn -= 1
+  return x
 
-import sys
 
-def read_text_file (fname):
-    with open(fname) as f:
-        content = f.readlines()
-    return [x.strip() for x in content]
+def getIndexForSub(first_two, sub_value):
+  if SUB[(first_two << 1) | 0 ] == sub_value:
+    return (first_two << 1) | 0
+  else:
+    return (first_two << 1) | 1
 
-def read_DIMACS (fname):
-    content=read_text_file(fname)
 
-    header=content[0].split(" ")
+def simpleSatSolver(y, and_functions, initial_number):
+  nn = N - 1
+  msb = (initial_number & 2) >> 1
+  lsb = initial_number & 1
+  for function in and_functions:
+    function.apply(msb, lsb)
+    function.simplify()
+    sub_value = (y & (1 << nn) ) >> nn
+    index = getIndexForSub( ((msb << 1) | lsb), sub_value) & 1
+    function.simplifyed_value.value = (index == 1)
+    msb = lsb
+    lsb = index
 
-    assert header[0]=="p" and header[1]=="cnf"
-    variables_total, clauses_total = int(header[2]), int(header[3])
+    nn -= 1
+  return constructVector(and_functions)
 
-    # array idx=number (of line) of clause
-    # val=list of terms
-    # term can be negative signed integer
-    clauses=[]
-    for c in content[1:]:
-        if c.startswith ("c "):
-            continue
-        clause=[]
-        for var_s in c.split(" "):
-            var=int(var_s)
-            if var!=0:
-                clause.append(var)
-        clauses.append(clause)
 
-    # this is variables index.
-    # for each variable, it has list of clauses, where this variable is used.
-    # key=variable
-    # val=list of numbers of clause
-    variables_idx={}
-    for i in range(len(clauses)):
-        for term in clauses[i]:
-            variables_idx.setdefault(abs(term), []).append(i)
+def constructFunction(y):
+  and_functions = []
+  for i in range(N - 1, -1, -1):
+    sub_value = (y & 1 << i) >> i
+    if sub_value == 0:
+      or_clauses = [Clause(i, zero_index, False, "and") for zero_index in ZERO_INDEXES]
+    else:
+      or_clauses = [Clause(i, one_index, False, "and") for one_index in ONE_INDEXES]
+    [or_clause.deMorgan() for or_clause in or_clauses]
+    and_functions.append(Function(or_clauses[:], 'and', True))
+    or_clauses.clear()
+  return and_functions
 
-    return clauses, variables_idx
 
-# clause=list of terms. signed integer. -x means negated.
-# values=list of values: from 0th: [F,F,F,F,T,F,T,T...]
-def eval_clause (terms, values):
-    try:
-        # we search for at least one True
-        for t in terms:
-            # variable is non-negated:
-            if t>0 and values[t-1]==True:
-                return True
-            # variable is negated:
-            if t<0 and values[(-t)-1]==False:
-                return True
-        # all terms enumerated at this point
-        return False
-    except IndexError:
-        # values[] has not enough values
-        # None means "maybe"
-        return None
 
-def chk_vals(clauses, variables_idx, vals):
-    # check only clauses which affected by the last (new/changed) value, ignore the rest
-    # because since we already got here, all other values are correct, so no need to recheck them
-    idx_of_last_var=len(vals)
-    # variable can be absent in index, because no clause uses it:
-    if idx_of_last_var not in variables_idx:
-        return True
-    # enumerate clauses which has this variable:
-    for clause_n in variables_idx[idx_of_last_var]:
-        clause=clauses[clause_n]
-        # if any clause evaluated to False, stop checking, new value is incorrect:
-        if eval_clause (clause, vals)==False:
-            return False
-    # all clauses evaluated to True or None ("maybe")
-    return True
+def satDecipher(y):
+  maybe_x = []
+  for i in range(4):
+    and_functions = constructFunction(y)
+    x = simpleSatSolver(y, and_functions, i)
+    x = (x & 1) << N - 1 | (x & max_256_bit_val) >> 1
+    maybe_x.append(x)
+  return maybe_x
 
-def print_vals(vals):
-    # enumerate all vals[]
-    # prepend "-" if vals[i] is False (i.e., negated).
-    print( "".join([["-",""][vals[i]] + str(i+1) + " " for i in range(len(vals))])+"0")
 
-clauses, variables_idx = read_DIMACS(sys.argv[1])
 
-solutions=0
+def decode(keystream):
+    guess = []
+    prev_stream = keystream
+    for i in range(N // 2):
+        guess = satDecipher(prev_stream)
+        prev_stream = getPrevStream(guess, prev_stream)
+        guess.clear()
 
-def backtrack(vals):
-    global solutions
+    return prev_stream.to_bytes(N, "little")[:29].decode()
 
-    if len(vals)==len(variables_idx):
-        # we reached end - all values are correct
-        print( "SAT")
-        print_vals(vals)
-        if count_solutions:
-            solutions=solutions+1
-            # go back, if we need more solutions:
-            return
-        else:
-            exit(10) # as in MiniSat
-        return
 
-    for next in [False, True]:
-        # add new value:
-        new_vals=vals+[next]
-        if chk_vals(clauses, variables_idx, new_vals):
-            # new value is correct, try add another one:
-            backtrack(new_vals)
-        else:
-            # new value (False) is not correct, now try True (variable flip):
-            continue
 
-# try to find all values:
-backtrack([])
-print ("UNSAT")
-if count_solutions:
-    print( "solutions=", solutions)
-exit(20) # as in MiniSat
+if __name__ == '__main__':
+    bis = readFileByBytes("./in/bis.txt")
+    cipherBis = readFileByBytes("./in/bis.txt.enc")
+    partialKeystream = getPartialKeystream(bis, cipherBis)
+    print(decode(int.from_bytes(bytes(partialKeystream[0:32]), 'little')))

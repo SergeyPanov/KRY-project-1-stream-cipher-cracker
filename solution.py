@@ -1,10 +1,4 @@
-SUB = [0, 1, 1, 0, 1, 0, 1, 0]
-
-N_B = 32
-N = 8 * N_B
-max_256_bit_val = 0
-for i in range(N):
-  max_256_bit_val |= 1 << i
+from commons import *
 
 def calculateX(y, x):
   x = x << N
@@ -17,27 +11,6 @@ def calculateX(y, x):
   x = (x & 1) << N - 1 | (x & max_256_bit_val) >> 1
   return x
 
-
-# Return previous keystream for next_stream based on guess
-def getPrevStream(guess, next_stream):
-  for prev_step in guess:
-    next_step = step(prev_step)
-    if next_step == next_stream:
-      return prev_step
-
-# Next keystream
-def step(x):
-  x = (x & 1) << N+1 | x << 1 | x >> N-1
-  y = 0
-  for i in range(N):
-    y |= SUB[(x >> i) & 7] << i
-  return y
-
-def readFileByBytes(file):
-    byteFile = []
-    with open(file, "rb") as f:
-        byteFile.append(f.read())
-    return byteFile
 
 def writeFileByBytes(file, content):
     with open(file, "wb") as output:
@@ -60,13 +33,6 @@ def decodeFile(input, output, partialKeystream):
     writeFileByBytes(output, content)
 
 
-
-def getPartialKeystream(plaintext1, ciphertext1):
-    firstXor = []
-    for plainLine, cipherLine in zip(plaintext1, ciphertext1):
-        firstXor = [plainChar ^ cipherChar for (plainChar, cipherChar) in zip(plainLine, cipherLine)]
-    return  firstXor
-
 def decode(keystream):
     guess = []
     prev_stream = keystream
@@ -80,7 +46,7 @@ def decode(keystream):
 
 
 if __name__ == '__main__':
-    bis = readFileByBytes("./xpanov00/bis.txt")
-    cipherBis = readFileByBytes("./xpanov00/bis.txt.enc")
+    bis = readFileByBytes("./in/bis.txt")
+    cipherBis = readFileByBytes("./in/bis.txt.enc")
     partialKeystream = getPartialKeystream(bis, cipherBis)
     print(decode(int.from_bytes(bytes(partialKeystream[0:32]), 'little')))
