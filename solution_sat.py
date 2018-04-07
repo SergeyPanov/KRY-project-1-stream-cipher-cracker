@@ -27,7 +27,7 @@ def applyClause(msb, lsb, clause):
 
   return clause
 
-def silifyClause(clause):
+def simplifyClause(clause):
   for term in clause:
     for key, value in term.items():
       if value["value"] != None:
@@ -46,7 +46,7 @@ def applyFunc(msb, lsb, function):
 def simplify(function):
   simplified_function = None
   for clause in function:
-    res = silifyClause(clause)
+    res = simplifyClause(clause)
     if res != True:
       simplified_function = res
   return simplified_function
