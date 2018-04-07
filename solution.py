@@ -4,10 +4,8 @@ def calculateX(y, x):
   x = x << N
   for i in range(N-1, -1, -1):
     sub_value = (y & 1 << i) >> i
-    if sub_value == SUB[(7 << i & x) >> i]:
-      x |= x
-    else:
-      x |= 1 << i
+    if sub_value != SUB[(7 << i & x) >> i]:
+        x |= 1 << i
   x = (x & 1) << N - 1 | (x & max_256_bit_val) >> 1
   return x
 
