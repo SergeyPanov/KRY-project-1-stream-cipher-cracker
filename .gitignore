@@ -2,3 +2,4 @@ in/
 *.gif*
 .idea/
 *.cnf
+super_cipher.py
